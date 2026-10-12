@@ -1,21 +1,35 @@
 <?php
 include '../connection.php';
-$data = json_decode(file_get_contents('php://input'), true);
+$data = $_POST;
+
+
+$uploadDir = '../';
+$image = "";
+if (!empty($_FILES['files'])) {
+    foreach ($_FILES['files']['tmp_name'] as $index => $tmpName) {
+        $name = rand() . basename($_FILES['files']['name'][$index]);
+        $targetPath = 'images/teachers_images/' . $name;
+
+        if (move_uploaded_file($tmpName, $uploadDir . $targetPath)) {
+            $teachers['photo'] = $targetPath;
+        }
+    }
+}
+
 $res = [];
 if ($data['name']) {
 
-    $teacher['name'] = $data['name'];
-    //$teacher['gender'] = $data['gender'];
-    $teacher['phone'] = $data['phone'];
-    $teacher['email'] = $data['email'];
-    $teacher['address'] = $data['address'];
-    $teacher['qualification'] = $data['qualification'];
-    //$teacher['main_subject'] = $data['main_subject'];
-    $teacher['salary'] = $data['salary'];
-    $teacher['joining_date'] = $data['joining_date'];
-    // $teacher['photo'] = $data['photo'];
-    $teacher['created_at'] = date('Y-m-d H:i:s');
-    $teacher['status'] = 1;
+    $teachers['name'] = $data['name'];
+    //$teachers['gender'] = $data['gender'];
+    $teachers['phone'] = $data['phone'];
+    $teachers['email'] = $data['email'];
+    $teachers['address'] = $data['address'];
+    $teachers['qualification'] = $data['qualification'];
+    $teachers['main_subject'] = $data['main_subject'];
+    $teachers['salary'] = $data['salary'];
+    $teachers['joining_date'] = $data['joining_date'];
+    $teachers['created_at'] = date('Y-m-d H:i:s');
+    $teachers['status'] = 1;
 
     $user['email'] = $data['email'];
     $user['name'] = $data['name'];
@@ -27,8 +41,8 @@ if ($data['name']) {
 
     $res = $cc->common_insert('users', $user);
     if ($res['status'] == true) {
-        $teacher['user_id'] = $res['data'];
-        $res = $cc->common_insert('teachers', $teacher);
+        $teachers['user_id'] = $res['data'];
+        $res = $cc->common_insert('teachers', $teachers);
     } else {
         $res = [
             "status" => false,
@@ -36,7 +50,5 @@ if ($data['name']) {
             "message" => "Data not saved"
         ];
     }
-
-
 }
 echo json_encode($res);
