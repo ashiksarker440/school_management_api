@@ -1,15 +1,17 @@
-<?php 
+<?php
 include 'connection.php';
-$data = json_decode(file_get_contents("php://input"), true);
+$data = $_POST;
 
-$data['password']=sha1($data['password']);
-if($data){
-	if($data['name'] && $data['email'] && $data['password']){
-		
-		$result=$cc->common_insert("users",$data);
+$data['password'] = md5($data['password']);
+$data['role'] = 'admin';
+unset($data['confirm_password']);
+if ($data) {
+	if ($data['name'] && $data['email'] && $data['password']) {
+
+		$result = $cc->common_insert("users", $data);
 		echo json_encode($result);
-	}else{
-		echo json_encode(array("message" => "Name, email and password are required.",'status'=>false,'data'	=>[]));
+	} else {
+		echo json_encode(array("message" => "Name, email and password are required.", 'status' => false, 'data' => []));
 	}
 }
 
