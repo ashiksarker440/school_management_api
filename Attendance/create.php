@@ -1,25 +1,45 @@
 <?php
 include '../connection.php';
-$data = $_POST;
+include '../auth_check.php';
 
 $res = [];
 
-if (!empty($data['admission_no']) && !empty($data['date'])) {
+if (
+    isset($_POST['student_id'], $_POST['date'], $_POST['status']) &&
+    !empty($_POST['student_id']) &&
+    !empty($_POST['date']) &&
+    !empty($_POST['status'])
+) {
+    // Form theke Present / Absent / Late ashe, database-e number rakhbo
+    $statusMap = [
+        'present' => 1,
+        'absent'  => 0,
+        'late'    => 2,
+    ];
 
-    $attendance['date'] = $data['date'];
-    $attendance['admission_no'] = $data['admission_no'];
-    $attendance['name'] = $data['name'];
-    $attendance['class_section'] = $data['class_section'];
-    $attendance['status'] = $data['status']; // jemon: 1 = Present, 0 = Absent
-    $attendance['created_at'] = date('Y-m-d H:i:s');
+    $statusKey = strtolower(trim($_POST['status']));
+
+    if (!array_key_exists($statusKey, $statusMap)) {
+        echo json_encode([
+            'status'  => false,
+            'data'    => [],
+            'message' => 'Invalid status'
+        ]);
+        exit;
+    }
+
+    $attendance = [];
+    $attendance['student_id']    = (int) $_POST['student_id'];
+    $attendance['date']          = $_POST['date'];
+    $attendance['status']        = $statusMap[$statusKey];
+    $attendance['created_at']    = date('Y-m-d H:i:s');
 
     $res = $cc->common_insert('attendance', $attendance);
 } else {
-    $res = [
-        "status" => false,
-        "data" => [],
-        "message" => "Date ar admission no dorkar"
-    ];
+    $res['status']  = false;
+    $res['data']    = [];
+    $res['message'] = 'Student, date and status are required';
 }
 
 echo json_encode($res);
+?>
