@@ -1,20 +1,33 @@
 <?php
 include '../connection.php';
 
-$data = $_POST;
-$id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-if (!$id || empty($data['exam_name']) || empty($data['date'])) {
+$id = $_GET['id'] ?? '';
+$examName = trim($_POST['exam_name'] ?? '');
+$type = trim($_POST['type'] ?? '');
+
+if (!ctype_digit((string) $id) || (int) $id < 1 || $examName === '' || $type === '') {
+    http_response_code(400);
     echo json_encode([
         'status' => false,
         'data' => [],
-        'message' => 'Invalid exam id, or exam name/date missing.'
+        'message' => 'A valid exam ID, exam name, and type are required.'
     ]);
     exit;
 }
 
-$existing = $cc->common_select('exams', 'id', ['id' => $id]);
-if (empty($existing['data'])) {
+$examId = (int) $id;
+$check = $cc->conn->prepare(
+    'SELECT id FROM exams WHERE id = ? AND deleted_at IS NULL LIMIT 1'
+);
+$check->bind_param('i', $examId);
+$check->execute();
+$exists = $check->get_result()->num_rows > 0;
+$check->close();
+
+if (!$exists) {
+    http_response_code(404);
     echo json_encode([
         'status' => false,
         'data' => [],
@@ -23,30 +36,17 @@ if (empty($existing['data'])) {
     exit;
 }
 
-$exam = [
-    'exam_name' => $data['exam_name'],
-    'type' => $data['type'] ?? '',
-    'class_id' => $data['class_id'] ?? '',
-    'subject' => $data['subject'] ?? '',
-    'date' => $data['date'],
-    'time' => $data['time'] ?? '',
-    'marks' => $data['marks'] ?? 0,
-    'status' => $data['status'] ?? 1,
-];
-
-$res = $cc->common_update('exams', $exam, ['id' => $id]);
-
-if ($res['status'] !== true) {
-    echo json_encode([
-        'status' => false,
-        'data' => [],
-        'message' => 'Exam could not be updated.'
-    ]);
-    exit;
-}
+$statement = $cc->conn->prepare(
+    'UPDATE exams SET exam_name = ?, type = ? WHERE id = ? AND deleted_at IS NULL'
+);
+$statement->bind_param('ssi', $examName, $type, $examId);
+$statement->execute();
+$updated = $statement->affected_rows;
+$statement->close();
 
 echo json_encode([
     'status' => true,
-    'data' => $res['data'],
+    'data' => $updated,
     'message' => 'Exam updated successfully.'
 ]);
+?>

@@ -1,28 +1,33 @@
 <?php
 include '../connection.php';
-$data = $_POST;
 
-$res = [];
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-if (!empty($data['exam_name']) && !empty($data['date'])) {
+$examName = trim($_POST['exam_name'] ?? '');
+$type = trim($_POST['type'] ?? '');
 
-    $exam['exam_name'] = $data['exam_name'];
-    $exam['type'] = $data['type'];
-    $exam['class_id'] = $data['class_id'];
-    $exam['subject'] = $data['subject'];
-    $exam['date'] = $data['date'];
-    $exam['time'] = $data['time'];
-    $exam['marks'] = $data['marks'];
-    $exam['status'] = $data['status'] ?? 1;
-    $exam['created_at'] = date('Y-m-d H:i:s');
-
-    $res = $cc->common_insert('exams', $exam);
-} else {
-    $res = [
-        "status" => false,
-        "data" => [],
-        "message" => "Exam name ar date dorkar"
-    ];
+if ($examName === '' || $type === '') {
+    http_response_code(400);
+    echo json_encode([
+        'status' => false,
+        'data' => [],
+        'message' => 'Exam name and type are required.'
+    ]);
+    exit;
 }
 
-echo json_encode($res);
+$createdAt = date('Y-m-d H:i:s');
+$statement = $cc->conn->prepare(
+    'INSERT INTO exams (exam_name, type, created_at) VALUES (?, ?, ?)'
+);
+$statement->bind_param('sss', $examName, $type, $createdAt);
+$statement->execute();
+$id = $cc->conn->insert_id;
+$statement->close();
+
+echo json_encode([
+    'status' => true,
+    'data' => $id,
+    'message' => 'Exam created successfully.'
+]);
+?>
